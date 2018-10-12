@@ -153,9 +153,8 @@ class FC_binary_class(Baseline):
         probs = self.predict_probs(X)
         return (probs>0.5).astype(int)
 
-
-
-
+class ConvNet_multiclass(Baseline):
+    
 
 def FC_layer(input, nl, nl_prev, act_func = 'relu'):
     with tf.name_scope(("FC")):
@@ -172,9 +171,17 @@ def FC_layer(input, nl, nl_prev, act_func = 'relu'):
         tf.summary.histogram("activations", A)
     return A
 
-def Conv_layer():
-    W = tf.Variable(tf.truncated_normal([5, 5, channels_in, channels_out]), name = 'Kernel')
-    b = tf.Variable(tf.constant(0.1, shape = [1, 1, channels_out]))
-    conv = tf.nn.conv2d(input, W, strides=[1, 1, 1, 1], padding="SAME" )
+
+def Conv_layer(f_h, f_w,c_in, c_out, strides = [1, 1, 1, 1], padding = "SAME"):
+    """
+    INPUTS:
+    --- f_h : filter heights
+    --- f_w : filter width
+    --- c_in : number of input channels
+    --- c_out : number of filters
+    """
+    W = tf.Variable(tf.truncated_normal([f_h, f_w, c_in, c_out]), name = 'Kernel')
+    b = tf.Variable(tf.constant(0.1, shape = [1, 1, c_out]))
+    conv = tf.nn.conv2d(input, W, strides=strides, padding=padding )
     A = tf.nn.relu(conv + b)
     return A

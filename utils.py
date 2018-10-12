@@ -32,3 +32,17 @@ def mini_batch(X, Y, batch_size):
 		idx_temp = idx[idx_1: ]
 		res.append((X[:,idx_temp],Y[:,idx_temp]))
 		return res
+
+def one_hot_encode(labels,C):
+    """
+    Arguments:
+    labels -- vector containing the labels -- shape=(n,)
+    C -- int. number of different classes
+
+    Return:
+    one-hot Matrix -- shape(n,C)
+    """
+    with tf.Session() as sess:
+        res=tf.one_hot(labels,C)
+        res=sess.run(res)
+    return res
