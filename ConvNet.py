@@ -1,7 +1,7 @@
 import tensorflow as tf
 from utils import *
 
-class Fully_Connected:
+class Baseline:
     def __init__(self, X_train, Y_train, X_test, Y_test):
         self.X_train = X_train
         self.Y_train = Y_train
@@ -12,54 +12,62 @@ class Fully_Connected:
         self.arch=[]
         
     def open(self):
+        """
+        Open and store tensorflow session
+        """
         self.sess = tf.Session()
 
     def close(self):
+        """
+        Close session to prevent from leaks
+        """
         self.sess.close()
     
-    def add_FC(self, h_units, act_func = 'relu'): # add other functions
+    def add_FC(self, h_units, act_func = 'relu'):
         """
         Add a fully connected layer
 
         INPUTS:
-        --- act_func = 'relu' 
+        --- h_units : Number of hidden units in the layer
+        --- act_func : 'relu', 'sigmoid'
         """
         self.arch.append(('FC',h_units, act_func))
     
     def init_param(self):
+        """
+        Setup Input and Output placeholders
+        """
         X = tf.placeholder(dtype = tf.float32, shape = [self.n0, None], name='input')
         Y = tf.placeholder(dtype = tf.float32, shape = [self.nl, None],name='label')
         return X, Y
     
-    def compute_loss(self,output, Y): #new class
-        with tf.name_scope('Loss'):
-            cross_entropy = tf.reduce_mean(-Y * tf.log(output+ 1e-8) - (1 - Y) * tf.log(1 - output+ 1e-8), name ='loss')
-        return cross_entropy
+    def compute_loss(self,output, Y):
+        pass
     
     def accuracy(self, output, Y):
-        with tf.name_scope('Accuracy'):
-            predicted_class = tf.greater(output,0.5)
-            correct = tf.equal(predicted_class, tf.equal(Y,1.0))
-            accuracy = tf.reduce_mean( tf.cast(correct, 'float'))
-        return accuracy
+        pass
 
-    def optimizer(self, loss, lr = 1e-4, Optimizer = 'Adam'): # Add other optimizer
+    def optimizer(self, loss, lr = 1e-4, optimizer = 'adam'):
+        """
+        Set up an optimizer
+        
+        INPUTS:
+        --- optimizer : adam / grad_desc
+        """
         with tf.name_scope('train'):
-            train_step = tf.train.AdamOptimizer(lr).minimize(loss)
+            if optimizer == 'adam':
+                train_step = tf.train.AdamOptimizer(lr).minimize(loss)
+            elif optimizer == 'grad_desc':
+                train_step = tf.train.GradientDescentOptimizer(lr).minimize(loss)
         return train_step
 
-    def Forward_prop(self, X): #Change for new class
-        nh_prev = self.n0
-        layer = X
-        for i, (_, nh, _) in enumerate(self.arch):
-            temp = layer
-            layer = FC_layer(temp, nh, nh_prev)
-            nh_prev = nh
-        
-        output = FC_layer(layer, self.nl, nh_prev,  act_func = 'sigmoid')
-        return output
+    def Forward_prop(self, X):
+        pass
 
     def compile(self):
+        """
+        Create graph structure
+        """
         tf.reset_default_graph()
         self.open()
         self.X, self.Y = self.init_param()
@@ -68,14 +76,16 @@ class Fully_Connected:
         self.accuracy = self.accuracy(self.output, self.Y)
         self.sess.run(tf.global_variables_initializer())
         
-
     def predict_probs(self, X):
         return self.sess.run(self.output, feed_dict={'input:0' : X})
 
-    def train(self, epoch, batch_size = 32, lr = 1e-2, filename = 'log_graph'):
-        loss = tf.get_default_graph().get_tensor_by_name("Loss/loss:0")
-        output, accuracy = self.output, self.accuracy
-        train_step = self.optimizer(loss, lr = lr)
+    def predict(self, X):
+        pass
+
+    def train(self, epoch, batch_size = 32, lr = 1e-2, optimizer = 'adam', filename = 'log_graph'):
+        # loss = tf.get_default_graph().get_tensor_by_name("Loss/loss:0")
+        output, accuracy, loss = self.output, self.accuracy, self.loss
+        train_step = self.optimizer(loss, lr = lr, optimizer = optimizer)
 
         #summary
         loss_summary = tf.summary.scalar('Loss', loss)
@@ -107,6 +117,46 @@ class Fully_Connected:
                     writer_test.add_summary(s,i)
                 i+=1
     
+
+class FC_binary_class(Baseline):
+
+    def accuracy(self, output, Y):
+        """
+        Accuracy for binary classification
+        """
+        with tf.name_scope('Accuracy'):
+            predicted_class = tf.greater(output,0.5)
+            correct = tf.equal(predicted_class, tf.equal(Y,1.0))
+            accuracy = tf.reduce_mean( tf.cast(correct, 'float'))
+        return accuracy
+
+    def compute_loss(self,output, Y):
+        """
+        Binary crossentropy
+        """
+        with tf.name_scope('Loss'):
+            loss = tf.reduce_mean(-Y * tf.log(output+ 1e-8) - (1 - Y) * tf.log(1 - output+ 1e-8), name ='loss')
+        return loss
+    
+    def Forward_prop(self, X): #Change for new class
+        nh_prev = self.n0
+        layer = X
+        for i, (_, nh, _) in enumerate(self.arch):
+            temp = layer
+            layer = FC_layer(temp, nh, nh_prev)
+            nh_prev = nh
+        
+        output = FC_layer(layer, self.nl, nh_prev,  act_func = 'sigmoid')
+        return output
+    
+    def predict(self, X):
+        probs = self.predict_probs(X)
+        return (probs>0.5).astype(int)
+
+
+
+
+
 def FC_layer(input, nl, nl_prev, act_func = 'relu'):
     with tf.name_scope(("FC")):
         W = tf.Variable(tf.truncated_normal([nl, nl_prev]), name = 'W') 
