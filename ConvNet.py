@@ -63,7 +63,6 @@ class Fully_Connected:
         tf.reset_default_graph()
         self.open()
         self.X, self.Y = self.init_param()
-        # self.init_param()
         self.output = self.Forward_prop(self.X)
         self.loss = self.compute_loss(self.output, self.Y)
         self.accuracy = self.accuracy(self.output, self.Y)
@@ -71,10 +70,7 @@ class Fully_Connected:
         
 
     def predict_probs(self, X):
-        pass
-        # with tf.Session() as sess:
-        #     # sess.run(tf.global_variables_initializer())
-        #     return sess.run(self.output, feed_dict={self.X : X})
+        return self.sess.run(self.output, feed_dict={'input:0' : X})
 
     def train(self, epoch, batch_size = 32, lr = 1e-2, filename = 'log_graph'):
         loss = tf.get_default_graph().get_tensor_by_name("Loss/loss:0")
@@ -106,7 +102,6 @@ class Fully_Connected:
 
                 if i%20 == 0 :
                     s=self.sess.run(merged_summary, feed_dict={'input:0': X_temp, 'label:0': Y_temp})
-                    # s=self.sess.run(merged_summary, feed_dict={X: self.X_train, Y: self.Y_train})
                     writer.add_summary(s,i)
                     s=self.sess.run(test_summary, feed_dict={'input:0': self.X_test, 'label:0': self.Y_test})
                     writer_test.add_summary(s,i)
